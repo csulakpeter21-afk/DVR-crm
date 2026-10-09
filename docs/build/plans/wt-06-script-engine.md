@@ -62,8 +62,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-06-script-engine on branch feat/script-engine of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Interactive script engine: versioned branching trees, a runtime that shows the next line instantly when the rep clicks the prospect's answer, and full path logging.. You may only edit these paths: packages/script-engine, apps/web/src/components/script-player, apps/api/src/scripts. You consume these contracts without editing them: packages/contracts, packages/ui. Tasks, in order: P1-06-T1 Tree model and versioning; P1-06-T2 Runtime; P1-06-T3 Script player UI; P1-06-T4 Path logging; P1-06-T5 Seed script. Acceptance criteria: Given a published version, When an editor changes it, Then a new version is created and live calls keep the version they started with. | Given a rep clicks an answer, When the next node renders, Then it appears in under 100 ms on a standard laptop (no network round trip). | Given a node needs {signal_hook} and the dossier has no sourced signal, When rendered, Then the fallback line is shown.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-06-script-engine.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-06-script-engine_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-06-script-engine.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-06-script-engine.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-06-script-engine_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

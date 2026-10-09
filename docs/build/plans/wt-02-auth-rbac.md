@@ -58,8 +58,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-02-auth-rbac on branch feat/auth-rbac of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Authentication, sessions and role-based access control for all roles in domain_frame.roles.. You may only edit these paths: apps/api/src/auth, apps/web/src/auth, packages/domain/src/permissions. You consume these contracts without editing them: packages/contracts. Tasks, in order: P1-02-T1 Auth; P1-02-T2 RBAC; P1-02-T3 Admin user management. Acceptance criteria: Given a rep, When requesting another rep's lead, Then the API returns 403 and the attempt is audit logged. | Given a deactivated user, When they try to log in, Then access is denied and existing sessions are revoked.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-02-auth-rbac.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-02-auth-rbac_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-02-auth-rbac.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-02-auth-rbac.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-02-auth-rbac_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

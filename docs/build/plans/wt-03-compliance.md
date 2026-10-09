@@ -62,8 +62,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-03-compliance on branch feat/compliance-engine of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Compliance by design: a rules engine the state machine and dialler must pass before acting.. You may only edit these paths: packages/compliance, apps/api/src/compliance, apps/web/src/app/(admin)/compliance. You consume these contracts without editing them: packages/contracts, packages/domain (hooks only). Tasks, in order: P1-03-T1 Rules engine; P1-03-T2 Suppression; P1-03-T3 Legal basis records; P1-03-T4 Retention jobs; P1-03-T5 Copy linter. Acceptance criteria: Given a contact outside the allowed calling window for their country, When a rep tries to dial, Then the dial button is disabled and the reason is shown. | Given a suppressed phone number, When any lead with that number is queued, Then the transition is blocked. | Given a template containing the word 'agency' or a dash, When CI runs, Then copy-lint fails with the line reference.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-03-compliance.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-03-compliance_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-03-compliance.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-03-compliance.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-03-compliance_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

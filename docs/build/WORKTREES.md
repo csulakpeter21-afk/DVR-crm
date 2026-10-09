@@ -4,15 +4,15 @@ Seven P1 worktrees are checked out and ready. Each is a real `git worktree` with
 its own branch and its own working directory, so seven sessions can run at once
 without touching each other's files.
 
-| Worktree | Branch | Directory | Status | Plan |
-| --- | --- | --- | --- | --- |
-| wt-01-core-domain | `feat/core-domain` | `/home/user/devora-wt/wt-01-core-domain` | ready, **merges first** | [plan](plans/wt-01-core-domain.md) |
-| wt-02-auth-rbac | `feat/auth-rbac` | `/home/user/devora-wt/wt-02-auth-rbac` | ready | [plan](plans/wt-02-auth-rbac.md) |
-| wt-03-compliance | `feat/compliance-engine` | `/home/user/devora-wt/wt-03-compliance` | ready | [plan](plans/wt-03-compliance.md) |
-| wt-04-integrations-framework | `feat/integrations-framework` | `/home/user/devora-wt/wt-04-integrations-framework` | ready | [plan](plans/wt-04-integrations-framework.md) |
-| wt-05-design-system-workspace | `feat/design-system-workspace` | `/home/user/devora-wt/wt-05-design-system-workspace` | ready, **merges last** | [plan](plans/wt-05-design-system-workspace.md) |
-| wt-06-script-engine | `feat/script-engine` | `/home/user/devora-wt/wt-06-script-engine` | ready | [plan](plans/wt-06-script-engine.md) |
-| wt-07-telephony-adapter | `feat/telephony-adapter` | `/home/user/devora-wt/wt-07-telephony-adapter` | **blocked on wt-04** | [plan](plans/wt-07-telephony-adapter.md) |
+| Worktree                      | Branch                         | Directory                                            | Status                  | Plan                                           |
+| ----------------------------- | ------------------------------ | ---------------------------------------------------- | ----------------------- | ---------------------------------------------- |
+| wt-01-core-domain             | `feat/core-domain`             | `/home/user/devora-wt/wt-01-core-domain`             | ready, **merges first** | [plan](plans/wt-01-core-domain.md)             |
+| wt-02-auth-rbac               | `feat/auth-rbac`               | `/home/user/devora-wt/wt-02-auth-rbac`               | ready                   | [plan](plans/wt-02-auth-rbac.md)               |
+| wt-03-compliance              | `feat/compliance-engine`       | `/home/user/devora-wt/wt-03-compliance`              | ready                   | [plan](plans/wt-03-compliance.md)              |
+| wt-04-integrations-framework  | `feat/integrations-framework`  | `/home/user/devora-wt/wt-04-integrations-framework`  | ready                   | [plan](plans/wt-04-integrations-framework.md)  |
+| wt-05-design-system-workspace | `feat/design-system-workspace` | `/home/user/devora-wt/wt-05-design-system-workspace` | ready, **merges last**  | [plan](plans/wt-05-design-system-workspace.md) |
+| wt-06-script-engine           | `feat/script-engine`           | `/home/user/devora-wt/wt-06-script-engine`           | ready                   | [plan](plans/wt-06-script-engine.md)           |
+| wt-07-telephony-adapter       | `feat/telephony-adapter`       | `/home/user/devora-wt/wt-07-telephony-adapter`       | **blocked on wt-04**    | [plan](plans/wt-07-telephony-adapter.md)       |
 
 All seven are cut from `claude/ecstatic-mendel-abdmov` at the P0 commit.
 
@@ -24,7 +24,11 @@ pnpm install          # each worktree has its own node_modules
 ```
 
 Then open a Claude Code session in that directory and paste the session prompt from
-the bottom of the worktree's plan file.
+the bottom of the worktree's plan file. It points at
+`docs/build/context/{worktree}.md`, a self-contained context pack of about 1,500
+tokens that replaces the 26,000 a session would otherwise read from
+`DEV_PLAN.json` and the docs. See [EXECUTION_PLAN.md](EXECUTION_PLAN.md) for why
+that matters and for the wave schedule.
 
 ## The rules that keep them from colliding
 
@@ -62,6 +66,16 @@ acceptance demo runs as a Playwright suite:
 ```bash
 git worktree remove /home/user/devora-wt/wt-01-core-domain
 ```
+
+## Waves, not phases
+
+[EXECUTION_PLAN.md](EXECUTION_PLAN.md) schedules all 61 remaining tasks into 7
+dependency waves and assigns each a model tier. Waves 1 to 3 cover 30 tasks and
+need no spec that does not exist, so they can run now. Waves 4 to 7 are gated on
+Peter.
+
+Wave 1 is wt-01, wt-03, wt-04 and wt-06. Wave 2 is wt-02 and wt-07. Wave 3 is
+wt-05.
 
 ## P2 to P4
 

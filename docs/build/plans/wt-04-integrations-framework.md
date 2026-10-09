@@ -61,8 +61,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-04-integrations-framework on branch feat/integrations-framework of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: A uniform adapter framework plus the FullEnrich adapter and mocks for every external provider.. You may only edit these paths: packages/integrations, tools/mocks, apps/api/src/webhooks. You consume these contracts without editing them: packages/contracts. Tasks, in order: P1-04-T1 Adapter framework; P1-04-T2 Webhook receiver; P1-04-T3 FullEnrich adapter; P1-04-T4 Provider interfaces + mocks. Acceptance criteria: Given an enrichment request, When the mock FullEnrich webhook posts the result twice, Then the contact is updated once and lead.enriched is emitted once. | Given the provider times out, When retries are exhausted, Then lead.enrichment_failed is emitted and a task is created. | Given any paid call, When it completes, Then a CostLedgerEntry with provider, unit and amount is written.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-04-integrations-framework.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-04-integrations-framework_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-04-integrations-framework.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-04-integrations-framework.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-04-integrations-framework_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

@@ -66,8 +66,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-01-core-domain on branch feat/core-domain of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Build the CRM backbone: data model, pipeline state machine, event outbox, audit log, task and SLA engine.. You may only edit these paths: packages/contracts, packages/db, packages/domain, apps/api/src/core, apps/worker/src/core. You consume these contracts without editing them: nothing. Tasks, in order: P1-01-T1 Entity schemas; P1-01-T2 Pipeline state machine; P1-01-T3 Event outbox; P1-01-T4 Audit log; P1-01-T5 Task and SLA engine; P1-01-T6 Core API. Acceptance criteria: Given a lead in stage researched with a failing compliance check, When a transition to queued is requested, Then it is rejected with a reason code and compliance.blocked is emitted. | Given any successful transition, When it commits, Then exactly one audit entry and one outbox event exist in the same transaction. | Given a stage SLA of N hours, When N hours pass without a transition, Then sla.breached is emitted once and a task is created for the owner role. | Given two contacts with the same verified email, When the second is imported, Then it is merged into the existing contact, not duplicated.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-01-core-domain.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-01-core-domain_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-01-core-domain.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-01-core-domain.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-01-core-domain_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

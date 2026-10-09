@@ -62,8 +62,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-07-telephony-adapter on branch feat/telephony-adapter of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Calling inside the CRM through a provider adapter (mock now, vendor after ADR): dial, call state, recording with notice, call logging synced to the lead.. You may only edit these paths: packages/integrations/src/telephony, apps/web/src/components/dialler, apps/api/src/calls. You consume these contracts without editing them: packages/contracts, packages/compliance, packages/integrations (framework). Tasks, in order: P1-07-T1 Call model and lifecycle; P1-07-T2 Dialler component; P1-07-T3 Recording notice; P1-07-T4 Mock provider. Acceptance criteria: Given a country rule requiring recording notice, When a call connects, Then no recording exists before the notice event is logged. | Given a call ends after 75 seconds with decision maker tagged, When the disposition is saved, Then the lead moves to conversation through the state machine.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-07-telephony-adapter.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-07-telephony-adapter_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-07-telephony-adapter.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-07-telephony-adapter.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-07-telephony-adapter_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

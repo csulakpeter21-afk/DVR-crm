@@ -60,8 +60,17 @@ replaced when the spec lands.
 
 ## Session prompt
 
-Paste this into a Claude Code session opened in the worktree directory:
+Paste this into a Claude Code session opened in the worktree directory. It points
+at the context pack, which is self-contained: a session that reads
+`DEV_PLAN.json` as well is paying ~14k tokens for nothing.
 
 ```
-You are working in worktree wt-05-design-system-workspace on branch feat/design-system-workspace of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: Premium design system and the rep workspace shell: one screen, one next action.. You may only edit these paths: packages/ui, apps/web/src/app/(rep), apps/web/src/app/(shell). You consume these contracts without editing them: packages/contracts, apps/api (via typed client). Tasks, in order: P1-05-T1 Design tokens and components; P1-05-T2 App shell per role; P1-05-T3 Rep queue and lead screen. Acceptance criteria: Given a rep opens the workspace, When the queue loads, Then exactly one primary action is visible for the top lead. | Given axe accessibility checks, When run on every rep screen, Then there are no serious or critical violations.. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/wt-05-design-system-workspace.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/wt-05-design-system-workspace_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate.
+Read docs/build/context/wt-05-design-system-workspace.md and do the work it describes. It is
+self-contained: do not read DEV_PLAN.json. Before coding, check the current
+official docs of any library or external API you use, and write a short plan
+in docs/build/plans/wt-05-design-system-workspace.notes.md. Work test first where the pack says so.
+Rebase on claude/ecstatic-mendel-abdmov at the start of each session. Use
+`turbo run test --filter=<pkg>...` while working and `pnpm verify` once before
+merging. When done, write docs/build/reports/wt-05-design-system-workspace_report.md and say you are
+ready to merge. Stop and ask at any human gate.
 ```

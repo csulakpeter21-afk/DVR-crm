@@ -4,7 +4,11 @@ node_modules/
 
 # build output
 dist/
-build/
+# Scoped deliberately: a bare `build/` would also swallow docs/build, which
+# holds the build tracker, the roadmap and the phase reports.
+/build/
+apps/*/build/
+packages/*/build/
 .next/
 out/
 *.tsbuildinfo

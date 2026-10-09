@@ -110,7 +110,13 @@ Smaller calls:
    `PLAYWRIGHT_CHROMIUM_PATH` when set and uses Playwright's own build otherwise,
    which is what CI does. Video recording is off under the override because the
    bundled ffmpeg is absent there.
-4. **A `User` model and two Prisma enums landed in P0**, ahead of P1-01-T1. The
+4. **One defect found and fixed after the P0 commit.** The `.gitignore` carried a
+   bare `build/`, which also matched `docs/build`, so everything
+   `DEV_PLAN.reporting` requires in the repository was silently untracked: the
+   build tracker, the questions file, this report, the worktree plans. The pattern
+   is now scoped to real build output. Worth noting because the failure mode was
+   invisible: the files existed on disk and `git status` was clean.
+5. **A `User` model and two Prisma enums landed in P0**, ahead of P1-01-T1. The
    schema needed something real to prove `generate`, `migrate` and the reset
    utility, and the audit log needs an actor. wt-01 owns extending it.
 

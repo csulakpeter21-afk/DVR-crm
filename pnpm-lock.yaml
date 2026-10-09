@@ -111,6 +111,12 @@ importers:
       '@devora/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@devora/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@devora/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@devora/script-engine':
         specifier: workspace:*
         version: link:../../packages/script-engine
@@ -268,12 +274,18 @@ importers:
       '@devora/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@devora/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@prisma/adapter-pg':
         specifier: 7.10.0
         version: 7.10.0
       '@prisma/client':
         specifier: 7.10.0
         version: 7.10.0(prisma@7.10.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3)
+      '@prisma/client-runtime-utils':
+        specifier: 7.10.0
+        version: 7.10.0
       zod:
         specifier: 'catalog:'
         version: 4.6.5

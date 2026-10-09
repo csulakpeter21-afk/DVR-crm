@@ -35,6 +35,14 @@ const devPlan = JSON.parse(readFileSync(join(REPO_ROOT, 'DEV_PLAN.json'), 'utf8'
 /** Files allowed to enumerate the vocabulary. */
 const VOCABULARY_OWNERS = [
   'packages/contracts/src/pipeline.ts',
+  // A transition table cannot be written without naming states. It does not
+  // redefine the enum: every key and value is typed LeadState, so an invented
+  // state will not compile, and its own test proves every state has an entry.
+  'packages/domain/src/pipeline/transitions.ts',
+  // Seed data must name the states it places demo leads in. It is not a source
+  // of truth: nothing in production reads it, and the LeadState type rejects an
+  // invented state.
+  'packages/db/src/seed/index.ts',
   'packages/contracts/src/roles.ts',
   'packages/contracts/src/events.ts',
   'packages/contracts/src/architecture.test.ts',

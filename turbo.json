@@ -1,14 +1,8 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
-  "globalDependencies": [
-    "tsconfig.base.json",
-    ".env.example"
-  ],
-  "globalEnv": [
-    "NODE_ENV",
-    "CI"
-  ],
+  "globalDependencies": ["tsconfig.base.json", ".env.example"],
+  "globalEnv": ["NODE_ENV", "CI"],
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "SHADOW_DATABASE_URL",
@@ -19,39 +13,20 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build",
-        "@devora/db#generate"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**"
-      ]
+      "dependsOn": ["^build", "@devora/db#generate"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "typecheck": {
-      "dependsOn": [
-        "^build",
-        "@devora/db#generate"
-      ],
-      "outputs": [
-        "*.tsbuildinfo"
-      ]
+      "dependsOn": ["^build", "@devora/db#generate"],
+      "outputs": ["*.tsbuildinfo"]
     },
     "lint": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "test": {
-      "dependsOn": [
-        "^build",
-        "@devora/db#generate"
-      ],
-      "outputs": [
-        "coverage/**"
-      ]
+      "dependsOn": ["^build", "@devora/db#generate"],
+      "outputs": ["coverage/**"]
     },
     "test:watch": {
       "cache": false,
@@ -68,19 +43,12 @@
       "cache": false
     },
     "@devora/db#generate": {
-      "inputs": [
-        "prisma/schema.prisma",
-        "prisma.config.ts"
-      ],
-      "outputs": [
-        "generated/**"
-      ]
+      "inputs": ["prisma/schema.prisma", "prisma.config.ts"],
+      "outputs": ["generated/**"]
     },
     "e2e": {
       "cache": false,
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     }
   }
 }

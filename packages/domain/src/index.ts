@@ -15,6 +15,8 @@ import {
   type Role,
 } from '@devora/contracts';
 
+export * from './pipeline/index.ts';
+
 /** What the platform knows about a state before any lead is involved. */
 export interface StateProfile {
   readonly state: LeadState;

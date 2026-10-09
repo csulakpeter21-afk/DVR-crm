@@ -45,3 +45,6 @@ export const disconnect = async (): Promise<void> => {
   await client?.$disconnect();
   client = undefined;
 };
+
+export { transitionLead } from './pipeline.ts';
+export type { TransitionOutcome, TransitionRequest } from './pipeline.ts';

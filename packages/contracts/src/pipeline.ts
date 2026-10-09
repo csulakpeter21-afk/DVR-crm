@@ -121,6 +121,19 @@ export const DEFAULT_STATE_SLA_HOURS: Readonly<Record<LeadState, number | null>>
 });
 
 /**
+ * The stages where a lead sits in a rep's hands rather than the platform's.
+ *
+ * The rep queue reads this instead of listing stages itself, so "what a rep is
+ * working" has one definition. Adding a stage to the funnel forces a decision
+ * here rather than leaving a queue quietly wrong.
+ */
+export const REP_ACTIVE_STAGES: readonly PipelineStage[] = Object.freeze([
+  'queued',
+  'dialled',
+  'connected',
+]);
+
+/**
  * States no automatic process moves a lead out of.
  * `suppressed` is terminal unless the compliance role lifts it; `won` is the end
  * of the funnel.

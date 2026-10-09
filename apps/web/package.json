@@ -20,7 +20,9 @@
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@devora/db": "workspace:*",
+    "@devora/domain": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

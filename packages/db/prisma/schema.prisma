@@ -64,6 +64,449 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  leads             Lead[]
+  calls             Call[]
+  qualifierMeetings Meeting[] @relation("QualifierMeetings")
+
   @@index([role])
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// P1-01-T1 Entity schemas. The dedupe keys are the plan's: Company by domain,
+// Contact by verified email, phone and LinkedIn URL.
+// ---------------------------------------------------------------------------
+
+model Company {
+  id       String  @id @default(uuid()) @db.Uuid
+  /// Dedupe key. Bare hostname, lower case, no scheme.
+  domain   String  @unique
+  name     String
+  industry String?
+  /// Headcount band, kept as text because sources disagree on exact numbers.
+  sizeBand String?
+  /// ISO 3166-1 alpha-2. Drives CountryRule lookup.
+  country  String
+
+  contacts Contact[]
+  leads    Lead[]
+  signals  Signal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("companies")
+}
+
+model Contact {
+  id          String  @id @default(uuid()) @db.Uuid
+  companyId   String  @db.Uuid
+  firstName   String
+  lastName    String
+  jobTitle    String
+  /// Dedupe keys. Null until enrichment verifies one.
+  email       String? @unique
+  phone       String? @unique
+  linkedinUrl String? @unique
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+  /// Where the contact sits, which decides the calling window.
+  country     String
+  /// IANA zone, for showing the rep the prospect's local time.
+  timezone    String  @default("Europe/Paris")
+  /// True when this person can sign off on a PR budget.
+  decisionMaker Boolean @default(false)
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  leads             Lead[]
+  legalBasisRecords LegalBasisRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("contacts")
+}
+
+model Campaign {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  /// A lead below this ICP score may not be queued.
+  icpThreshold Int    @default(60)
+  active       Boolean @default(true)
+  leads        Lead[]
+
+  createdAt DateTime @default(now())
+
+  @@map("campaigns")
+}
+
+/// Nothing writes `stage` directly: transitions go through the state machine in
+/// @devora/domain, which writes one audit entry and one outbox event in the same
+/// transaction. The trigger in the migration enforces that in SQL.
+model Lead {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @db.Uuid
+  contactId  String    @db.Uuid
+  campaignId String    @db.Uuid
+
+  stage      LeadState @default(sourced)
+  /// 0 to 100, with the contributing factors stored for explainability.
+  icpScore   Int       @default(0)
+  icpFactors Json      @default("[]")
+  /// Higher sorts first in the rep queue.
+  priority   Int       @default(0)
+
+  assignedToUserId String? @db.Uuid
+
+  /// Required when entering disqualified, nurture or suppressed.
+  reasonCode   String?
+  reasonDetail String?
+  /// Required by nurture: when the lead comes back.
+  reEntryAt    DateTime?
+
+  /// Set when the lead last changed stage, which is what the SLA timer reads.
+  stageEnteredAt DateTime @default(now())
+  attemptCount   Int      @default(0)
+  lastAttemptAt  DateTime?
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  assignedTo User?  @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  signals  Signal[]
+  calls    Call[]
+  dossier  Dossier?
+  meetings Meeting[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage, priority])
+  @@index([assignedToUserId, stage])
+  @@map("leads")
+}
+
+/// A pain-point signal. Every one carries a source URL and a retrieval date:
+/// no unsourced claim reaches a rep (DEV_PLAN.product.principles).
+model Signal {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  leadId    String?  @db.Uuid
+  kind      String
+  /// The one line a rep can say out loud. Fills {signal_hook} in a script.
+  headline  String
+  detail    String?
+  sourceUrl String
+  retrievedAt DateTime
+  confidence  Float  @default(0.8)
+  /// Signals decay: a six-month-old funding round is not a reason to call today.
+  observedAt  DateTime
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([leadId])
+  @@map("signals")
+}
+
+model Dossier {
+  id      String        @id @default(uuid()) @db.Uuid
+  leadId  String        @unique @db.Uuid
+  /// not_ready until every generated sentence links to a claim.
+  status  DossierStatus @default(not_ready)
+  /// The rep's 15-second read.
+  summary String?
+  /// Why now, in one line.
+  hook    String?
+  risks   String?
+
+  lead   Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  claims DossierClaim[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dossiers")
+}
+
+model DossierClaim {
+  id          String   @id @default(uuid()) @db.Uuid
+  dossierId   String   @db.Uuid
+  claim       String
+  sourceUrl   String
+  retrievedAt DateTime
+  confidence  Float    @default(0.8)
+
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId])
+  @@map("dossier_claims")
+}
+
+enum DossierStatus {
+  not_ready
+  ready
+}
+
+// ---------------------------------------------------------------------------
+// P1-01-T3 outbox, P1-01-T4 audit log. Both are written inside the same
+// transaction as the stage change they describe.
+// ---------------------------------------------------------------------------
+
+/// Append-only. Rows are never updated or deleted, including when a lead is.
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Null when the platform acted on its own.
+  actorUserId String?  @db.Uuid
+  action      String
+  entityType  String
+  entityId    String   @db.Uuid
+  /// Stage before and after, for a transition.
+  fromValue   String?
+  toValue     String?
+  reasonCode  String?
+  detail      String?
+  occurredAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([occurredAt])
+  @@map("audit_log")
+}
+
+/// Transactional outbox. The worker dispatches rows where dispatchedAt is null.
+model OutboxEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  subjectId      String    @db.Uuid
+  correlationId  String    @db.Uuid
+  /// Makes consumers safe to retry: a consumer that has seen this key no-ops.
+  idempotencyKey String    @unique
+  actorUserId    String?   @db.Uuid
+  payload        Json      @default("{}")
+  occurredAt     DateTime  @default(now())
+  dispatchedAt   DateTime?
+  attempts       Int       @default(0)
+  lastError      String?
+
+  @@index([dispatchedAt, occurredAt])
+  @@map("outbox_events")
+}
+
+// ---------------------------------------------------------------------------
+// P1-03 compliance. Rules are data the compliance role edits, not code.
+// ---------------------------------------------------------------------------
+
+model CountryRule {
+  /// ISO 3166-1 alpha-2.
+  country String  @id
+  /// Local-time window a rep may dial in, as minutes from midnight.
+  callWindowStartMinutes Int @default(540)
+  callWindowEndMinutes   Int @default(1140)
+  /// Weekdays only, as ISO day numbers 1 (Monday) to 7.
+  callDays               Int[] @default([1, 2, 3, 4, 5])
+  /// When true, no recording may exist before the notice event is logged.
+  recordingNoticeRequired Boolean @default(true)
+  /// Days after which personal data is deleted or anonymised.
+  retentionDays           Int     @default(365)
+  /// A do-not-call registry that must be checked before dialling.
+  registryCheckRequired   Boolean @default(false)
+  notes                   String?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("country_rules")
+}
+
+model SuppressionEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  /// Exactly one of these is set.
+  phone     String?  @unique
+  email     String?  @unique
+  domain    String?  @unique
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@map("suppression_entries")
+}
+
+/// Required before a lead may be queued (P1-03-T3).
+model LegalBasisRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  contactId String   @db.Uuid
+  basis     String
+  dataSource String
+  assessmentRef String?
+  recordedAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@map("legal_basis_records")
+}
+
+// ---------------------------------------------------------------------------
+// P1-06 script engine. A published version is immutable, so a call that starts
+// on version 3 stays on version 3 even if an editor publishes version 4.
+// ---------------------------------------------------------------------------
+
+model ScriptTree {
+  id        String          @id @default(uuid()) @db.Uuid
+  name      String
+  versions  ScriptVersion[]
+  createdAt DateTime        @default(now())
+
+  @@map("script_trees")
+}
+
+model ScriptVersion {
+  id           String       @id @default(uuid()) @db.Uuid
+  treeId       String       @db.Uuid
+  version      Int
+  /// Immutable once set. An edit creates a new version.
+  publishedAt  DateTime?
+  rootNodeId   String?      @db.Uuid
+
+  tree  ScriptTree   @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  nodes ScriptNode[]
+  calls Call[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([treeId, version])
+  @@map("script_versions")
+}
+
+model ScriptNode {
+  id        String  @id @default(uuid()) @db.Uuid
+  versionId String  @db.Uuid
+  /// Stable handle used by seeds and by answers that point here.
+  key       String
+  /// What the rep says. May contain {first_name}, {company}, {signal_hook}.
+  line      String
+  /// Shown when a variable in `line` has no sourced value.
+  fallbackLine String?
+  intent    String?
+  /// A terminal node carries the outcome instead of answers.
+  outcome   String?
+  /// Opens the booking panel when the rep reaches this node.
+  isBooking Boolean @default(false)
+
+  version ScriptVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  answers ScriptAnswer[] @relation("NodeAnswers")
+  inbound ScriptAnswer[] @relation("AnswerTarget")
+  paths   CallPath[]
+
+  @@unique([versionId, key])
+  @@map("script_nodes")
+}
+
+model ScriptAnswer {
+  id         String  @id @default(uuid()) @db.Uuid
+  nodeId     String  @db.Uuid
+  /// What the rep clicks: the prospect's answer, in the prospect's words.
+  label      String
+  nextNodeId String? @db.Uuid
+  /// Tags the branch for analytics, e.g. objection_price.
+  outcomeTag String?
+  sortOrder  Int     @default(0)
+
+  node     ScriptNode  @relation("NodeAnswers", fields: [nodeId], references: [id], onDelete: Cascade)
+  nextNode ScriptNode? @relation("AnswerTarget", fields: [nextNodeId], references: [id], onDelete: SetNull)
+  paths    CallPath[]
+
+  @@index([nodeId])
+  @@map("script_answers")
+}
+
+/// Every node a rep passed through, with timestamps (P1-06-T4).
+model CallPath {
+  id         String   @id @default(uuid()) @db.Uuid
+  callId     String   @db.Uuid
+  nodeId     String   @db.Uuid
+  answerId   String?  @db.Uuid
+  enteredAt  DateTime @default(now())
+  answeredAt DateTime?
+  sequence   Int
+
+  call   Call          @relation(fields: [callId], references: [id], onDelete: Cascade)
+  node   ScriptNode    @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  answer ScriptAnswer? @relation(fields: [answerId], references: [id], onDelete: SetNull)
+
+  @@index([callId])
+  @@map("call_paths")
+}
+
+// ---------------------------------------------------------------------------
+// P1-07 calls, P3-13 meetings.
+// ---------------------------------------------------------------------------
+
+model Call {
+  id        String     @id @default(uuid()) @db.Uuid
+  leadId    String     @db.Uuid
+  userId    String     @db.Uuid
+  versionId String?    @db.Uuid
+
+  state     CallState  @default(started)
+  startedAt DateTime   @default(now())
+  connectedAt DateTime?
+  endedAt   DateTime?
+  durationSeconds Int?
+
+  /// Set the moment the notice is played. Recording may not start before it.
+  recordingNoticeAt DateTime?
+  recordingUrl      String?
+
+  disposition          String?
+  decisionMakerReached Boolean @default(false)
+  notes                String?
+
+  lead    Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version ScriptVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  paths   CallPath[]
+
+  @@index([leadId])
+  @@index([userId, startedAt])
+  @@map("calls")
+}
+
+enum CallState {
+  started
+  ringing
+  connected
+  ended
+  failed
+}
+
+model Meeting {
+  id          String        @id @default(uuid()) @db.Uuid
+  leadId      String        @db.Uuid
+  qualifierUserId String    @db.Uuid
+  scheduledAt DateTime
+  durationMinutes Int       @default(30)
+  state       MeetingState  @default(booked)
+  bookedByUserId String     @db.Uuid
+
+  lead      Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  qualifier User @relation("QualifierMeetings", fields: [qualifierUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([qualifierUserId, scheduledAt])
+  @@map("meetings")
+}
+
+enum MeetingState {
+  booked
+  held
+  no_show
+  rescheduled
+  cancelled
 }

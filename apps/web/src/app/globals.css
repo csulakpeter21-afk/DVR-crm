@@ -1,12 +1,35 @@
 @import 'tailwindcss';
 @import '@devora/ui/tokens.css';
 
-/*
- * P0 SHELL. The real type scale, spacing rhythm and component styles are
- * P1-05-T1 (wt-05-design-system-workspace).
- */
+html {
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--devora-surface);
+  background: var(--devora-paper);
   color: var(--devora-ink);
   font-family: var(--devora-font-sans);
+  font-size: var(--devora-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--devora-font-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--devora-ink);
+}
+
+a {
+  color: inherit;
+}
+
+/* The rep workspace is keyboard driven, so links and buttons must not look flat. */
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
 }

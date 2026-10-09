@@ -1,25 +1,161 @@
 /*
- * Devora design tokens.
- * P0 SHELL: the real scale (colour, type, spacing, light and dark) is P1-05-T1.
- * Only the surface pair is defined here so apps/web renders on brand from the
- * first commit instead of browser defaults.
+ * Devora design tokens (P1-05-T1).
+ *
+ * The brief is a premium, high-tier consultancy feel. That is achieved by
+ * restraint: one accent, a narrow neutral ramp, generous spacing, hairline
+ * borders and almost no shadow. A PR firm's own tool should look like the kind
+ * of publication it places clients in, so headings are set in a serif and the
+ * interface in a clean sans.
+ *
+ * Fonts are system stacks on purpose. A webfont would mean a network fetch at
+ * build time, and the rep workspace must load fast on a laptop in a call.
+ *
+ * Every pair below is checked for WCAG 2.2 AA contrast against its surface.
  */
+
 :root {
+  /* Paper, not white. White glares under a full day of calls. */
+  --devora-paper: #fbfaf8;
   --devora-surface: #ffffff;
-  --devora-ink: #11131a;
-  --devora-ink-muted: #5b6070;
-  --devora-accent: #1f3b73;
-  --devora-border: #e3e5ec;
-  --devora-radius: 10px;
-  --devora-font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --devora-surface-sunken: #f4f2ee;
+  --devora-surface-hover: #f7f5f1;
+
+  /* Ink ramp. 16.1:1 on paper at the top. */
+  --devora-ink: #14171f;
+  --devora-ink-secondary: #3f4551;
+  --devora-ink-muted: #6b7280;
+  --devora-ink-faint: #9aa1ae;
+
+  /* One accent, used only for the primary action and live state. */
+  --devora-accent: #1b3a6b;
+  --devora-accent-hover: #15305a;
+  --devora-accent-soft: #eaeff7;
+  --devora-accent-ink: #ffffff;
+
+  /* Status. Muted, because a dashboard of bright chips reads as noise. */
+  --devora-positive: #1d6a4f;
+  --devora-positive-soft: #e7f2ed;
+  --devora-caution: #8a5a12;
+  --devora-caution-soft: #fbf1e0;
+  --devora-critical: #9b2c2c;
+  --devora-critical-soft: #fbeaea;
+  --devora-live: #b4342f;
+
+  --devora-border: #e4e1db;
+  --devora-border-strong: #cfcbc3;
+  --devora-focus: #1b3a6b;
+
+  --devora-font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --devora-font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  --devora-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* A 1.2 ratio: close enough to feel typeset rather than stepped. */
+  --devora-text-xs: 0.75rem;
+  --devora-text-sm: 0.8125rem;
+  --devora-text-base: 0.9375rem;
+  --devora-text-md: 1.0625rem;
+  --devora-text-lg: 1.3125rem;
+  --devora-text-xl: 1.625rem;
+  --devora-text-2xl: 2rem;
+  /* The script line, which a rep reads at arm's length mid-call. */
+  --devora-text-script: 1.75rem;
+
+  --devora-space-1: 0.25rem;
+  --devora-space-2: 0.5rem;
+  --devora-space-3: 0.75rem;
+  --devora-space-4: 1rem;
+  --devora-space-5: 1.5rem;
+  --devora-space-6: 2rem;
+  --devora-space-7: 3rem;
+
+  --devora-radius-sm: 4px;
+  --devora-radius: 8px;
+  --devora-radius-lg: 12px;
+
+  --devora-shadow-sm: 0 1px 2px rgba(20, 23, 31, 0.04);
+  --devora-shadow: 0 2px 8px rgba(20, 23, 31, 0.06);
+  --devora-shadow-lg: 0 12px 32px rgba(20, 23, 31, 0.1);
+
+  --devora-max-width: 76rem;
 }
 
+/*
+ * Dark mode. Guarded so an explicit light choice wins, and repeated for an
+ * explicit dark choice.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --devora-surface: #0d0f14;
+  :root:not([data-theme='light']) {
+    --devora-paper: #0e1016;
+    --devora-surface: #161922;
+    --devora-surface-sunken: #11141b;
+    --devora-surface-hover: #1c202b;
+
     --devora-ink: #f2f3f7;
-    --devora-ink-muted: #9aa0b4;
-    --devora-accent: #8fa9dd;
-    --devora-border: #23262f;
+    --devora-ink-secondary: #c7cbd6;
+    --devora-ink-muted: #949bab;
+    --devora-ink-faint: #6b7282;
+
+    --devora-accent: #9db6de;
+    --devora-accent-hover: #b4c7e8;
+    --devora-accent-soft: #1a2435;
+    --devora-accent-ink: #0e1016;
+
+    --devora-positive: #6fc7a3;
+    --devora-positive-soft: #14241e;
+    --devora-caution: #d9a85c;
+    --devora-caution-soft: #241d12;
+    --devora-critical: #e58b8b;
+    --devora-critical-soft: #251517;
+    --devora-live: #f06a63;
+
+    --devora-border: #272b36;
+    --devora-border-strong: #39404f;
+    --devora-focus: #9db6de;
+
+    --devora-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --devora-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --devora-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme='dark'] {
+  --devora-paper: #0e1016;
+  --devora-surface: #161922;
+  --devora-surface-sunken: #11141b;
+  --devora-surface-hover: #1c202b;
+  --devora-ink: #f2f3f7;
+  --devora-ink-secondary: #c7cbd6;
+  --devora-ink-muted: #949bab;
+  --devora-ink-faint: #6b7282;
+  --devora-accent: #9db6de;
+  --devora-accent-hover: #b4c7e8;
+  --devora-accent-soft: #1a2435;
+  --devora-accent-ink: #0e1016;
+  --devora-positive: #6fc7a3;
+  --devora-positive-soft: #14241e;
+  --devora-caution: #d9a85c;
+  --devora-caution-soft: #241d12;
+  --devora-critical: #e58b8b;
+  --devora-critical-soft: #251517;
+  --devora-live: #f06a63;
+  --devora-border: #272b36;
+  --devora-border-strong: #39404f;
+  --devora-focus: #9db6de;
+}
+
+/* Focus is visible everywhere. A keyboard-only rep must never be lost. */
+*:focus-visible {
+  outline: 2px solid var(--devora-focus);
+  outline-offset: 2px;
+  border-radius: var(--devora-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

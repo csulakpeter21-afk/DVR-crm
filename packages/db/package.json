@@ -6,7 +6,8 @@
   "description": "Prisma schema, migrations and synthetic seed data.",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./pipeline": "./src/pipeline.ts"
   },
   "scripts": {
     "generate": "prisma generate",
@@ -24,8 +25,10 @@
   },
   "dependencies": {
     "@devora/contracts": "workspace:*",
+    "@devora/domain": "workspace:*",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@prisma/client-runtime-utils": "7.10.0",
     "zod": "catalog:"
   },
   "devDependencies": {

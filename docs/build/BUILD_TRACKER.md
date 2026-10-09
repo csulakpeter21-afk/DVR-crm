@@ -92,25 +92,26 @@ See `ROADMAP.md` for the ordering and the finished-UI screen inventory, and
 
 ## Worktree state
 
-All seven P1 worktrees are checked out and ready to start: see
-[WORKTREES.md](WORKTREES.md).
+All 17 worktrees are checked out with dependencies installed: see
+[WORKTREES.md](WORKTREES.md). Waves and model tiers are in
+[EXECUTION_PLAN.md](EXECUTION_PLAN.md).
 
-| Worktree                      | Branch                         | Phase | Depends on                       | Status                             |
-| ----------------------------- | ------------------------------ | ----- | -------------------------------- | ---------------------------------- |
-| wt-01-core-domain             | `feat/core-domain`             | P1    | P0                               | checked out, ready (merges first)  |
-| wt-02-auth-rbac               | `feat/auth-rbac`               | P1    | P0                               | checked out, ready                 |
-| wt-03-compliance              | `feat/compliance-engine`       | P1    | P0                               | checked out, ready                 |
-| wt-04-integrations-framework  | `feat/integrations-framework`  | P1    | P0                               | checked out, ready                 |
-| wt-05-design-system-workspace | `feat/design-system-workspace` | P1    | P0                               | checked out, ready (merges last)   |
-| wt-06-script-engine           | `feat/script-engine`           | P1    | P0                               | checked out, ready                 |
-| wt-07-telephony-adapter       | `feat/telephony-adapter`       | P1    | P0, wt-04-integrations-framework | checked out, blocked on wt-04      |
-| wt-08-offer-icp-signals       | `feat/offer-icp-signals`       | P2    | P1                               | blocked: specs M1-M7, M10 missing  |
-| wt-09-sourcing-enrichment     | `feat/sourcing-enrichment`     | P2    | P1, wt-08-offer-icp-signals      | blocked: specs M1-M7, M10 missing  |
-| wt-10-dossier                 | `feat/dossier`                 | P2    | P1, wt-08-offer-icp-signals      | blocked: specs M1-M7, M10 missing  |
-| wt-11-calling-live            | `feat/calling-live`            | P2    | P1                               | blocked: specs M1-M7, M10 missing  |
-| wt-12-rep-ops                 | `feat/rep-ops`                 | P2    | P1                               | blocked: specs M1-M7, M10 missing  |
-| wt-13-booking-handoff         | `feat/booking-handoff`         | P3    | P2                               | blocked: specs M8, M9, M11 missing |
-| wt-14-collateral              | `feat/collateral`              | P3    | P2                               | blocked: specs M8, M9, M11 missing |
-| wt-15-experimentation         | `feat/experimentation`         | P3    | P2                               | blocked: specs M8, M9, M11 missing |
-| wt-16-dashboards              | `feat/dashboards`              | P3    | P2                               | blocked: specs M8, M9, M11 missing |
-| wt-17-system-acceptance       | `feat/system-acceptance`       | P4    | P3                               | blocked: wave 1 pilot plan missing |
+| Worktree                                    | Branch                         | Wave | Tasks | Checked out | Gate                          |
+| ------------------------------------------- | ------------------------------ | ---- | ----- | ----------- | ----------------------------- |
+| wt-01-core-domain (merges first)            | `feat/core-domain`             | 1    | 6     | yes         | open now                      |
+| wt-03-compliance                            | `feat/compliance-engine`       | 1    | 5     | yes         | open now                      |
+| wt-04-integrations-framework                | `feat/integrations-framework`  | 1    | 4     | yes         | open now                      |
+| wt-06-script-engine                         | `feat/script-engine`           | 1    | 5     | yes         | open now                      |
+| wt-02-auth-rbac                             | `feat/auth-rbac`               | 2    | 3     | yes         | wave 1 merged                 |
+| wt-07-telephony-adapter                     | `feat/telephony-adapter`       | 2    | 4     | yes         | wave 1 merged                 |
+| wt-05-design-system-workspace (merges last) | `feat/design-system-workspace` | 3    | 3     | yes         | wave 2 merged                 |
+| wt-08-offer-icp-signals                     | `feat/offer-icp-signals`       | 4    | 3     | yes         | specs M1, M2, M3, M6, M7, M10 |
+| wt-11-calling-live                          | `feat/calling-live`            | 4    | 3     | yes         | specs M1, M2, M3, M6, M7, M10 |
+| wt-12-rep-ops                               | `feat/rep-ops`                 | 4    | 4     | yes         | specs M1, M2, M3, M6, M7, M10 |
+| wt-09-sourcing-enrichment                   | `feat/sourcing-enrichment`     | 5    | 3     | yes         | wave 4 merged + specs M4, M5  |
+| wt-10-dossier                               | `feat/dossier`                 | 5    | 3     | yes         | wave 4 merged + specs M4, M5  |
+| wt-13-booking-handoff                       | `feat/booking-handoff`         | 6    | 4     | yes         | specs M8, M9, M11             |
+| wt-14-collateral                            | `feat/collateral`              | 6    | 2     | yes         | specs M8, M9, M11             |
+| wt-15-experimentation                       | `feat/experimentation`         | 6    | 3     | yes         | specs M8, M9, M11             |
+| wt-16-dashboards                            | `feat/dashboards`              | 6    | 2     | yes         | specs M8, M9, M11             |
+| wt-17-system-acceptance                     | `feat/system-acceptance`       | 7    | 4     | yes         | wave 1 pilot plan             |

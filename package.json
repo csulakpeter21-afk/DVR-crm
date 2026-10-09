@@ -1,0 +1,42 @@
+{
+  "name": "devora-sales-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Devora Sales Engine: the CRM that runs Devora's outbound sales process end to end.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:services": "docker compose up -d && pnpm --filter @devora/db exec prisma migrate deploy",
+    "dev:apps": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch --parallel",
+    "copy-lint": "pnpm --filter @devora/compliance run copy-lint",
+    "e2e": "pnpm --filter @devora/e2e run e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @devora/db run migrate",
+    "db:reset": "pnpm --filter @devora/db run reset",
+    "db:seed": "pnpm --filter @devora/db run seed",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run copy-lint && pnpm run test",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:test:setup": "pnpm --filter @devora/db run migrate:deploy"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "10.12.0",
+    "prettier": "3.9.9",
+    "turbo": "2.11.7",
+    "typescript": "catalog:",
+    "typescript-eslint": "8.71.1",
+    "@eslint/js": "10.0.1",
+    "globals": "17.13.0"
+  }
+}

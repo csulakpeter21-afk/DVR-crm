@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+@import '@devora/ui/tokens.css';
+
+/*
+ * P0 SHELL. The real type scale, spacing rhythm and component styles are
+ * P1-05-T1 (wt-05-design-system-workspace).
+ */
+body {
+  background: var(--devora-surface);
+  color: var(--devora-ink);
+  font-family: var(--devora-font-sans);
+}

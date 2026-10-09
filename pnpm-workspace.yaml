@@ -1,0 +1,24 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'tools/*'
+  - 'e2e'
+
+# Keep every workspace on one resolution of these so types never diverge
+# across packages/contracts (the single source of truth) and its consumers.
+catalog:
+  typescript: 5.9.3
+  zod: 4.6.5
+  vitest: 5.0.3
+  '@types/node': 22.20.5
+
+# pnpm 10 blocks lifecycle scripts by default. These need them:
+#   prisma/@prisma/engines  -> downloads the query engine
+#   esbuild                 -> installs its platform binary (tsup, vite, tsx)
+#   msgpackr-extract        -> optional native accelerator for bullmq
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - esbuild
+  - msgpackr-extract
+  - prisma

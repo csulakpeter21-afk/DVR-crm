@@ -1,0 +1,153 @@
+# CI for the Devora Sales Engine (DEV_PLAN P0-T3).
+#
+# Required on `integration` and `main`. A red pipeline blocks a merge: the
+# merge checklist in DEV_PLAN.git_strategy depends on this being enforced
+# rather than advisory.
+
+name: CI
+
+on:
+  push:
+    branches: [main, integration]
+  pull_request:
+    branches: [main, integration]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: devora
+          POSTGRES_PASSWORD: devora
+          POSTGRES_DB: devora
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U devora -d devora"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:8.2-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://devora:devora@localhost:5433/devora?schema=public
+      SHADOW_DATABASE_URL: postgresql://devora:devora@localhost:5433/devora_shadow?schema=public
+      REDIS_URL: redis://localhost:6380
+      SESSION_SECRET: ci-session-secret-at-least-32-bytes-long
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Create the shadow and test databases
+        run: |
+          for name in devora_shadow devora_test; do
+            PGPASSWORD=devora psql -h localhost -p 5433 -U devora -d devora \
+              -c "CREATE DATABASE $name" || true
+          done
+
+      - name: Generate the Prisma client
+        run: pnpm --filter @devora/db run generate
+
+      - name: Format check
+        run: pnpm run format:check
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      # DEV_PLAN.company_rules.copy_lint: outbound copy rules are a build gate,
+      # not a review comment.
+      - name: Copy lint
+        run: pnpm run copy-lint
+
+      # Integration tests run against a real PostgreSQL, so the schema has to
+      # be there first.
+      - name: Apply migrations to the test database
+        run: pnpm run db:test:setup
+        env:
+          DATABASE_URL: postgresql://devora:devora@localhost:5433/devora_test?schema=public
+
+      - name: Unit and integration tests
+        run: pnpm run test
+        env:
+          TEST_DATABASE_URL: postgresql://devora:devora@localhost:5433/devora_test?schema=public
+          DATABASE_URL: postgresql://devora:devora@localhost:5433/devora_test?schema=public
+
+      - name: Build
+        run: pnpm run build
+
+  e2e:
+    name: End to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: verify
+
+    env:
+      DATABASE_URL: postgresql://devora:devora@localhost:5433/devora?schema=public
+      REDIS_URL: redis://localhost:6380
+      SESSION_SECRET: ci-session-secret-at-least-32-bytes-long
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the Prisma client
+        run: pnpm --filter @devora/db run generate
+
+      - name: Install the Playwright browser
+        run: pnpm --filter @devora/e2e exec playwright install --with-deps chromium
+
+      # The P0 smoke test needs only the web app; Playwright starts it via the
+      # webServer block in e2e/playwright.config.ts. Later phases add the API
+      # and the worker here.
+      - name: Smoke and acceptance suites
+        run: pnpm run e2e
+
+      - name: Upload the Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7

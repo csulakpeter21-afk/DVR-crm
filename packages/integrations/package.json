@@ -1,0 +1,32 @@
+{
+  "name": "@devora/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Adapter interfaces, implementations and mocks for enrichment, telephony, transcription, llm, email and calendar.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enrichment": "./src/enrichment/index.ts",
+    "./telephony": "./src/telephony/index.ts",
+    "./transcription": "./src/transcription/index.ts",
+    "./llm": "./src/llm/index.ts",
+    "./email": "./src/email/index.ts",
+    "./calendar": "./src/calendar/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@devora/contracts": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

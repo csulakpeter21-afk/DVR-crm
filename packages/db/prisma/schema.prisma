@@ -1,0 +1,69 @@
+// Devora Sales Engine database schema.
+//
+// P0 SEED. The full entity set (Company, Contact, Lead, Campaign, Task,
+// SlaPolicy, AuditLog, CostLedgerEntry and the rest of
+// DEV_PLAN.domain_frame.core_entities) lands in P1-01-T1 (wt-01-core-domain).
+// What is here proves the toolchain end to end and fixes the two enums that
+// every later model depends on.
+//
+// The enums below MUST stay identical to @devora/contracts. The test in
+// src/schema.test.ts compares them and fails the build on drift, so
+// packages/contracts stays the single source of truth even for SQL.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Mirrors @devora/contracts LEAD_STATES (pipeline stages plus side states).
+enum LeadState {
+  sourced
+  enriched
+  researched
+  queued
+  dialled
+  connected
+  conversation
+  meeting_booked
+  meeting_held
+  qualified
+  opportunity
+  won
+  disqualified
+  nurture
+  suppressed
+  recycled
+}
+
+/// Mirrors @devora/contracts ROLES.
+enum Role {
+  rep
+  team_lead
+  qualifier
+  closer
+  growth_lead
+  compliance
+  admin
+}
+
+/// A platform user. Needed from P0 because the audit log records an actor and
+/// deactivation must preserve history rather than delete rows (P1-02-T3).
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  displayName  String
+  role         Role
+  /// Null until the user accepts their invitation.
+  passwordHash String?
+  /// Deactivated users keep their audit history (P1-02-T3).
+  deactivatedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([role])
+  @@map("users")
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@devora/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Playwright end-to-end suites and phase acceptance demos.",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "lint": "eslint tests",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf playwright-report test-results .turbo *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

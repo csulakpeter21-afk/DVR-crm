@@ -1,0 +1,36 @@
+{
+  "name": "@devora/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Jobs, webhook processing, schedulers and SLA timers.",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsup",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@devora/compliance": "workspace:*",
+    "@devora/contracts": "workspace:*",
+    "@devora/db": "workspace:*",
+    "@devora/domain": "workspace:*",
+    "@devora/integrations": "workspace:*",
+    "bullmq": "6.3.12",
+    "ioredis": "6.0.0",
+    "pino": "10.4.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "pino-pretty": "13.2.0",
+    "tsup": "8.5.1",
+    "tsx": "4.23.15",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

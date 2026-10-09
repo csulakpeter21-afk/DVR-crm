@@ -1,0 +1,66 @@
+# Local development stack (DEV_PLAN P0-T2).
+#
+# Ports are shifted off the defaults so this stack never collides with another
+# PostgreSQL or Redis already running on the machine.
+#
+# Synthetic data only. Real lead data never enters this stack
+# (DEV_PLAN.global_engineering_rules).
+
+name: devora-sales-engine
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: devora
+      POSTGRES_PASSWORD: devora
+      POSTGRES_DB: devora
+      # Needed by `prisma migrate dev`, which diffs against a throwaway database.
+      POSTGRES_MULTIPLE_DATABASES: devora_shadow,devora_test
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U devora -d devora']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8.2-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mocks:
+    build:
+      context: .
+      dockerfile: docker/mocks.Dockerfile
+    environment:
+      MOCK_SERVER_PORT: 4010
+    ports:
+      - '4010:4010'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4010/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
+  redis-data:

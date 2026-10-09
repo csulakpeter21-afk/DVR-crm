@@ -1,0 +1,25 @@
+/*
+ * Devora design tokens.
+ * P0 SHELL: the real scale (colour, type, spacing, light and dark) is P1-05-T1.
+ * Only the surface pair is defined here so apps/web renders on brand from the
+ * first commit instead of browser defaults.
+ */
+:root {
+  --devora-surface: #ffffff;
+  --devora-ink: #11131a;
+  --devora-ink-muted: #5b6070;
+  --devora-accent: #1f3b73;
+  --devora-border: #e3e5ec;
+  --devora-radius: 10px;
+  --devora-font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --devora-surface: #0d0f14;
+    --devora-ink: #f2f3f7;
+    --devora-ink-muted: #9aa0b4;
+    --devora-accent: #8fa9dd;
+    --devora-border: #23262f;
+  }
+}

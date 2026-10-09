@@ -1,0 +1,1066 @@
+{
+  "schema_version": "1.0",
+  "plan_name": "Devora Sales Engine CRM: total platform development plan",
+  "project": "Call Centre & Interactive Data Collector CRM",
+  "owner": "Peter (business development, Devora)",
+  "created": "2026-10-09",
+  "how_to_use": [
+    "Place this file at the repository root as DEV_PLAN.json.",
+    "Copy the project knowledge files into docs/: 00_PROJECT_TRACKER.md, 01_DECISION_LOG.md, 02_ASSUMPTION_REGISTER.md, 03_GLOSSARY.md, 04_ARCHITECTURE.md, specs/*.md, build/*.md (whatever exists).",
+    "Open Claude Code in the repository root and send: 'Read DEV_PLAN.json and execute orchestrator.steps. Start with the phases whose status is start_now.'",
+    "Phases marked blocked_until_spec_gate start only when the listed spec files exist in docs/specs/ and are marked approved by Peter in docs/00_PROJECT_TRACKER.md."
+  ],
+
+  "product": {
+    "name": "Devora Sales Engine",
+    "definition": "A CRM that runs Devora's entire outbound sales process in an automated way: the system of record for every company, contact, signal, call, meeting and outcome, and the automation engine that moves each lead through the pipeline. The platform runs the process; humans do the conversations and the judgement calls.",
+    "engine_flow": "company knowledge -> ICP engine -> pain-point signal detection -> sourcing and enrichment (FullEnrich + other sources) -> sourced lead dossier -> prioritised call queue -> interactive call script -> recording, transcription, analytics -> booked 30-minute qualifier meeting -> tailored booking emails and documents -> qualifier brief -> qualifier and closer pipeline -> results feed back into ICP, signals and scripts",
+    "north_star": "Qualified 30-minute qualifier meetings HELD per week, accepted by the qualifier as a genuine fit, at a target cost per held meeting.",
+    "principles": [
+      "AUTOMATED / HUMAN / ENFORCED: every step is classified. If a user has to remember something, the design is not finished.",
+      "Rep UX is stupid-proof: one screen, one next action.",
+      "Compliance is enforced in code, never left to memory.",
+      "Every automated claim about a lead carries a source URL and retrieval date. No unsourced claims reach a rep, qualifier or prospect.",
+      "Premium, high-tier consultancy feel in every screen, template and document.",
+      "Qualified, relevant leads over volume."
+    ]
+  },
+
+  "company_rules": {
+    "naming": "Devora (devora.io) is a PR firm. Always 'PR firm' or 'firm'. Never 'agency' anywhere: UI copy, seed data, templates, comments visible to users.",
+    "services": [
+      "Editorial coverage visibility across 500+ top-tier media outlets",
+      "Search visibility: SEO, AEO, GEO, Google and Meta PPC",
+      "Outreach: email and LinkedIn"
+    ],
+    "outbound_copy_rules_for_templates_and_ui": [
+      "never 'agency'",
+      "no dashes in outbound copy",
+      "no space before punctuation",
+      "short, human, tailored to the research",
+      "when listing outlets: Forbes first, and write 'Financial Times'",
+      "no signature in English emails",
+      "French messages sign off 'Bien à vous,' then 'Péter'"
+    ],
+    "copy_lint": "Implement a copy linter (packages/compliance/copy-lint) that fails CI when templates or seeded copy break these rules."
+  },
+
+  "spec_sources": {
+    "architecture_frame": "docs/04_ARCHITECTURE.md",
+    "specs_dir": "docs/specs/",
+    "decision_log": "docs/01_DECISION_LOG.md",
+    "assumption_register": "docs/02_ASSUMPTION_REGISTER.md",
+    "precedence": [
+      "1. Approved specs in docs/specs/ and docs/04_ARCHITECTURE.md",
+      "2. ADRs in docs/adr/",
+      "3. This plan's defaults"
+    ],
+    "rule_when_missing": "If a spec or the architecture frame is missing, use the defaults in this plan, label each one ASSUMPTION in code comments and in docs/02_ASSUMPTION_REGISTER.md, and keep the implementation behind an interface so it can be replaced."
+  },
+
+  "stack": {
+    "status": "DEFAULT pending ADR-001 (output of task T02 Platform architecture & build vs buy). If ADR-001 exists in docs/adr/, it overrides this section.",
+    "language": "TypeScript (strict) everywhere",
+    "monorepo": "pnpm workspaces + Turborepo",
+    "web": "Next.js (App Router) + Tailwind CSS + a component library in packages/ui",
+    "api": "Node.js service (Fastify) exposing a typed REST API; schemas in packages/contracts (zod), OpenAPI generated from them",
+    "worker": "Node.js worker with BullMQ on Redis for jobs, webhooks, retries, SLA timers",
+    "database": "PostgreSQL with Prisma; transactional outbox table for events",
+    "events": "Outbox pattern -> worker dispatch; event names and payloads defined only in packages/contracts",
+    "auth": "Session-based auth with role-based access control; SSO optional later",
+    "llm": "Anthropic Claude API behind packages/integrations/llm; every generated claim must reference a stored source",
+    "telephony": "Provider adapter interface with a mock provider; vendor chosen by ADR (requirements: EU data residency option, browser calling, recording, recording notice playback, webhooks, CRM-side call logging)",
+    "transcription": "Provider adapter interface with a mock; vendor chosen by ADR (requirements: languages of target markets, diarisation, EU processing option)",
+    "email_calendar": "Adapter interfaces for sending email and booking calendar slots; vendors chosen by ADR",
+    "enrichment": "FullEnrich: Search API (synchronous, filters for contacts and companies) and Enrich API (asynchronous, results via webhook). Adapter with a mock server for development.",
+    "testing": "Vitest (unit, integration), Playwright (e2e), contract tests for every adapter against its mock",
+    "infra": "Docker Compose for local (postgres, redis, mock servers); hosting in an EU region; decided by ADR",
+    "observability": "Structured logs, request tracing IDs, job metrics, error tracking"
+  },
+
+  "repo": {
+    "name": "devora-sales-engine",
+    "structure": {
+      "apps/web": "Next.js app: rep workspace, qualifier view, leadership dashboards, admin",
+      "apps/api": "HTTP API",
+      "apps/worker": "Jobs, webhooks, schedulers, SLA timers",
+      "packages/contracts": "Single source of truth: entity schemas, event catalogue, pipeline stages, API DTOs (zod). Owned by wt-01-core-domain.",
+      "packages/db": "Prisma schema, migrations, seed (synthetic data only)",
+      "packages/domain": "Pipeline state machine, task and SLA engine, audit log, scoring interfaces",
+      "packages/compliance": "Rules engine, suppression, calling windows, recording notice, retention, legal basis records, copy linter",
+      "packages/integrations": "Adapter interfaces + implementations + mocks: enrichment, telephony, transcription, llm, email, calendar",
+      "packages/script-engine": "Script tree model, versioning, runtime, path logging",
+      "packages/ui": "Design system: tokens, components, layouts",
+      "docs": "Project knowledge copies, ADRs, build tracker, build reports",
+      "e2e": "Playwright suites and acceptance demos",
+      "tools/mocks": "Mock servers for FullEnrich, telephony, transcription, email, calendar"
+    }
+  },
+
+  "git_strategy": {
+    "main_branch": "main (protected; only receives merges from integration after acceptance)",
+    "integration_branch": "integration (all feature branches merge here first; CI must be green)",
+    "worktree_root": "../devora-wt/",
+    "create_command_template": "git worktree add ../devora-wt/{worktree_id} -b {branch} integration",
+    "remove_command_template": "git worktree remove ../devora-wt/{worktree_id}",
+    "one_session_per_worktree": "Run one Claude Code session (or one subagent with worktree isolation) per worktree. A session only edits paths listed in its owns_paths.",
+    "contracts_rule": "Only wt-01-core-domain edits packages/contracts. Other worktrees request changes by writing docs/change-requests/CR-xxx.md; the orchestrator applies approved changes in wt-01 and rebases dependants.",
+    "sync_rule": "Each worktree rebases on integration at the start of every work session and before opening a merge.",
+    "commit_style": "Conventional commits; every commit references its task id, e.g. 'feat(script-engine): runtime next-node resolution [P1-06-T2]'",
+    "merge_checklist": [
+      "All tests green (unit, integration, contract, affected e2e)",
+      "Lint, typecheck and copy-lint green",
+      "Migrations reversible",
+      "Build report written in docs/build/reports/",
+      "No secrets, no real personal data"
+    ]
+  },
+
+  "domain_frame": {
+    "status": "DEFAULT until docs/04_ARCHITECTURE.md exists; then the architecture file wins.",
+    "pipeline_stages": [
+      {
+        "id": "sourced",
+        "entry": "Lead created from an approved source with company and contact identity"
+      },
+      { "id": "enriched", "entry": "At least one verified phone or verified email stored" },
+      { "id": "researched", "entry": "Dossier status = ready and every claim has a source" },
+      {
+        "id": "queued",
+        "entry": "ICP score >= campaign threshold AND compliance check passed AND assigned to a rep queue"
+      },
+      { "id": "dialled", "entry": "Call attempt started" },
+      { "id": "connected", "entry": "A person answered" },
+      { "id": "conversation", "entry": "Decision maker reached AND call duration > 60s" },
+      { "id": "meeting_booked", "entry": "Qualifier slot booked and confirmation queued" },
+      { "id": "meeting_held", "entry": "Qualifier marks the meeting as held" },
+      { "id": "qualified", "entry": "Qualifier accepts the lead as a genuine fit" },
+      { "id": "opportunity", "entry": "Closer opens an opportunity" },
+      { "id": "won", "entry": "Contract signed" }
+    ],
+    "side_states": [
+      {
+        "id": "disqualified",
+        "entry": "Reason code required (e.g. not ICP, no budget, wrong contact, lost)"
+      },
+      { "id": "nurture", "entry": "Not now; re-entry date required" },
+      {
+        "id": "suppressed",
+        "entry": "Compliance block (objection to processing, do-not-call, retention expiry); terminal unless compliance lifts it"
+      },
+      {
+        "id": "recycled",
+        "entry": "Attempt cadence exhausted without connection; returns to queued after cool-down"
+      }
+    ],
+    "transition_rules": [
+      "Transitions only through the state machine API in packages/domain; direct writes to stage are forbidden and blocked by a database constraint or service guard.",
+      "Every transition writes an audit log entry and emits an event.",
+      "Every stage has an owner role and an SLA; breaches emit sla.breached and create a task.",
+      "Any stage may move to suppressed. Moving out of suppressed requires the compliance role."
+    ],
+    "roles": [
+      { "id": "rep", "can": "work own queue, run calls, log outcomes, book meetings" },
+      { "id": "team_lead", "can": "manage reps and queues, QA calls, coaching notes" },
+      { "id": "qualifier", "can": "see briefs, run qualifier meetings, accept or reject leads" },
+      { "id": "closer", "can": "manage opportunities to won" },
+      {
+        "id": "growth_lead",
+        "can": "all dashboards, budgets, experiments, ICP and script approval"
+      },
+      { "id": "compliance", "can": "rules, suppression, retention, audit access" },
+      { "id": "admin", "can": "users, integrations, settings" }
+    ],
+    "core_entities": [
+      "User",
+      "Team",
+      "Company",
+      "Contact",
+      "Lead",
+      "Campaign",
+      "IcpSegment",
+      "IcpScore",
+      "Signal",
+      "SignalSource",
+      "EnrichmentJob",
+      "Dossier",
+      "DossierClaim(source_url, retrieved_at, confidence)",
+      "QueueItem",
+      "Call",
+      "Recording",
+      "Transcript",
+      "CallTag",
+      "ScriptTree",
+      "ScriptVersion",
+      "ScriptNode",
+      "ScriptAnswer",
+      "CallPath",
+      "Experiment",
+      "Variant",
+      "Assignment",
+      "Meeting",
+      "QualifierBrief",
+      "EmailTemplate",
+      "EmailMessage",
+      "CollateralDocument",
+      "Task",
+      "SlaPolicy",
+      "AuditLog",
+      "LegalBasisRecord",
+      "SuppressionEntry",
+      "CountryRule",
+      "CostLedgerEntry"
+    ],
+    "event_catalogue": [
+      "lead.sourced",
+      "lead.enriched",
+      "lead.enrichment_failed",
+      "dossier.ready",
+      "lead.queued",
+      "call.started",
+      "call.connected",
+      "call.ended",
+      "call.recording_available",
+      "transcript.ready",
+      "script.node_answered",
+      "meeting.booked",
+      "meeting.reminder_sent",
+      "meeting.held",
+      "meeting.no_show",
+      "lead.qualified",
+      "lead.disqualified",
+      "lead.suppressed",
+      "lead.recycled",
+      "sla.breached",
+      "experiment.assigned",
+      "compliance.blocked",
+      "cost.recorded"
+    ]
+  },
+
+  "global_engineering_rules": [
+    "Read docs/04_ARCHITECTURE.md, the relevant specs and ADRs before writing code.",
+    "Check the current official documentation of every library and external API before using it; record versions in the build report.",
+    "packages/contracts is law. Change it only via change request + ADR.",
+    "No silent scope changes. Out-of-scope findings go into the build report under Handoffs.",
+    "Synthetic data only in development and tests. Never import real lead data into this repository.",
+    "Secrets only via environment variables and a secrets manager; never committed.",
+    "Tests first for the state machine, compliance rules, scoring and script runtime.",
+    "Every compliance rule has a test that proves the platform blocks the forbidden action.",
+    "Every external call goes through an adapter with timeouts, retries with backoff, idempotency keys and a mock.",
+    "Every LLM output that states a fact about a lead must link to a stored DossierClaim; unsourced sentences are rejected by a validator.",
+    "Accessibility: WCAG 2.2 AA for all screens.",
+    "Log every deviation from spec in the build report."
+  ],
+
+  "human_gates": {
+    "rule": "Stop, write the question to docs/build/QUESTIONS.md and ask Peter before any of the following.",
+    "items": [
+      "Choosing or signing up for a paid vendor (telephony, transcription, email, hosting, data)",
+      "Changing packages/contracts or docs/04_ARCHITECTURE.md",
+      "Anything that would store or process real personal data",
+      "Deploying to any shared or production environment",
+      "Changing a compliance rule or legal basis logic",
+      "Any decision marked irreversible or expensive in the decision log"
+    ]
+  },
+
+  "orchestrator": {
+    "role": "Lead Claude Code session in the main repository. Plans, creates worktrees, launches one working session per worktree, enforces contracts, merges, runs integration tests, reports.",
+    "steps": [
+      "1. Read this file, docs/04_ARCHITECTURE.md (if present), docs/specs/, docs/adr/ and docs/00_PROJECT_TRACKER.md. List which phases are start_now and which are blocked, and why.",
+      "2. If the repository is empty, initialise it on branch main, create branch integration, and add docs/build/BUILD_TRACKER.md with every task from this plan (status: not_started).",
+      "3. Execute phase P0 directly in the main working copy on branch integration (no worktrees yet; it creates the skeleton everyone depends on). Merge only when its acceptance criteria pass.",
+      "4. For each worktree in the next start_now phase, run git_strategy.create_command_template, then launch a working session in that worktree with the session_prompt_template filled for that worktree.",
+      "5. Run worktrees of the same phase in parallel. Respect depends_on: a worktree starts only when its dependencies are merged into integration.",
+      "6. Monitor: keep docs/build/BUILD_TRACKER.md current (task, worktree, status, blocker, report link). Answer contract change requests; apply approved ones in wt-01-core-domain and tell dependants to rebase.",
+      "7. Merge each finished worktree into integration in merge_order after its merge_checklist passes; run the full test suite after every merge.",
+      "8. After all worktrees in a phase are merged, run the phase acceptance demo (Playwright) and write docs/build/reports/PHASE_{id}_report.md. Remove finished worktrees.",
+      "9. Stop at every human gate and at the end of each phase. Report to Peter: what was built, demo steps, test results, open questions, next phase readiness.",
+      "10. For blocked phases, check whether the required specs now exist and are approved; if yes, continue with step 4."
+    ],
+    "session_prompt_template": "You are working in worktree {worktree_id} on branch {branch} of the Devora Sales Engine (a CRM that runs Devora's whole outbound sales process; Devora is a PR firm, never call it an agency). Read DEV_PLAN.json (sections product, company_rules, stack, domain_frame, global_engineering_rules, human_gates), docs/04_ARCHITECTURE.md, the specs listed in this worktree's spec_inputs, and the ADRs. Your goal: {goal}. You may only edit these paths: {owns_paths}. You consume these contracts without editing them: {consumes}. Tasks, in order: {tasks}. Acceptance criteria: {acceptance_criteria}. Before coding: check current official docs for every library and API you use, then write a short plan in docs/build/plans/{worktree_id}.md. Work test first where the plan says so. Rebase on integration at the start of each session. When done: all tests, lint, typecheck and copy-lint green; write docs/build/reports/{worktree_id}_report.md (what was built, decisions, deviations, known issues, handoffs); then tell the orchestrator you are ready to merge. Stop and ask at any human gate."
+  },
+
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Foundation skeleton",
+      "status": "start_now",
+      "mode": "sequential, main working copy on branch integration",
+      "worktrees": [],
+      "tasks": [
+        {
+          "id": "P0-T1",
+          "title": "Monorepo setup",
+          "details": "pnpm workspaces, Turborepo, TypeScript strict configs, ESLint, Prettier, path aliases, all apps and packages from repo.structure as empty compiling shells."
+        },
+        {
+          "id": "P0-T2",
+          "title": "Local environment",
+          "details": "Docker Compose with PostgreSQL, Redis and placeholder mock servers; .env.example; one command to start everything (pnpm dev)."
+        },
+        {
+          "id": "P0-T3",
+          "title": "CI pipeline",
+          "details": "Install, lint, typecheck, unit tests, build, copy-lint placeholder; required on integration and main."
+        },
+        {
+          "id": "P0-T4",
+          "title": "Test harness",
+          "details": "Vitest configured per package; Playwright project with one smoke test; test database reset utilities; synthetic data factory skeleton."
+        },
+        {
+          "id": "P0-T5",
+          "title": "Docs scaffolding",
+          "details": "docs/adr/ with ADR template and ADR-000 (record of this plan's default stack, status: proposed), docs/change-requests/, docs/build/ (BUILD_TRACKER.md, QUESTIONS.md, plans/, reports/)."
+        },
+        {
+          "id": "P0-T6",
+          "title": "Contracts seed",
+          "details": "packages/contracts with pipeline stage enum, side states, role enum and event name enum from domain_frame, as zod schemas. Marked ASSUMPTION until docs/04_ARCHITECTURE.md exists."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a fresh clone, When the developer runs the documented setup commands, Then all services start and the smoke e2e test passes.",
+        "Given a pull request to integration, When CI runs, Then lint, typecheck, tests and build all execute and block on failure.",
+        "Given packages/contracts, When another package imports the stage enum, Then it compiles and no other package defines its own stage list."
+      ]
+    },
+    {
+      "id": "P1",
+      "name": "Core CRM backbone (spec-light, start now with defaults)",
+      "status": "start_now",
+      "depends_on": ["P0"],
+      "mode": "parallel worktrees",
+      "worktrees": [
+        "wt-01-core-domain",
+        "wt-02-auth-rbac",
+        "wt-03-compliance",
+        "wt-04-integrations-framework",
+        "wt-05-design-system-workspace",
+        "wt-06-script-engine",
+        "wt-07-telephony-adapter"
+      ],
+      "acceptance_demo": "Log in as a rep, see a queue of synthetic leads, open one, run a mock call with the script player clicking answers to the end, log the outcome, move the lead to meeting_booked through the state machine, and see the audit log and emitted events. A suppressed lead cannot be queued or dialled."
+    },
+    {
+      "id": "P2",
+      "name": "Lead engine + calling engine logic (slices A and B)",
+      "status": "blocked_until_spec_gate",
+      "depends_on": ["P1"],
+      "required_specs": [
+        "docs/specs/M1_*",
+        "docs/specs/M2_*",
+        "docs/specs/M3_*",
+        "docs/specs/M4_*",
+        "docs/specs/M5_*",
+        "docs/specs/M6_*",
+        "docs/specs/M7_*",
+        "docs/specs/M10_*"
+      ],
+      "mode": "parallel worktrees",
+      "worktrees": [
+        "wt-08-offer-icp-signals",
+        "wt-09-sourcing-enrichment",
+        "wt-10-dossier",
+        "wt-11-calling-live",
+        "wt-12-rep-ops"
+      ],
+      "acceptance_demo": "From an ICP segment, source leads through the FullEnrich mock, enrich via webhook, generate sourced dossiers, score and queue them, and run calls with a versioned script, recording and transcript (mock providers), with every node answer logged."
+    },
+    {
+      "id": "P3",
+      "name": "Conversion + optimisation + leadership (slices C and D)",
+      "status": "blocked_until_spec_gate",
+      "depends_on": ["P2"],
+      "required_specs": ["docs/specs/M8_*", "docs/specs/M9_*", "docs/specs/M11_*"],
+      "mode": "parallel worktrees",
+      "worktrees": [
+        "wt-13-booking-handoff",
+        "wt-14-collateral",
+        "wt-15-experimentation",
+        "wt-16-dashboards"
+      ],
+      "acceptance_demo": "A rep books a qualifier meeting in the call; the prospect receives a tailored confirmation with the right document; reminders fire; the qualifier opens a complete brief; experiment assignment and node-level metrics appear; the growth lead dashboard shows cost per held meeting from the cost ledger."
+    },
+    {
+      "id": "P4",
+      "name": "System integration, acceptance and wave 1 readiness",
+      "status": "blocked_until_spec_gate",
+      "depends_on": ["P3"],
+      "required_specs": ["docs/specs/T18_wave1_pilot_plan* or equivalent"],
+      "mode": "orchestrator plus wt-17-system-acceptance",
+      "worktrees": ["wt-17-system-acceptance"],
+      "acceptance_demo": "Full journey ICP to won on synthetic data; load and latency checks; security review; GDPR, recording notice and do-not-call checks; dashboards reconciled against raw data; wave 1 go-live checklist complete."
+    }
+  ],
+
+  "worktrees": [
+    {
+      "worktree_id": "wt-01-core-domain",
+      "branch": "feat/core-domain",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/04_ARCHITECTURE.md", "docs/specs/M0_*"],
+      "goal": "Build the CRM backbone: data model, pipeline state machine, event outbox, audit log, task and SLA engine.",
+      "owns_paths": [
+        "packages/contracts",
+        "packages/db",
+        "packages/domain",
+        "apps/api/src/core",
+        "apps/worker/src/core"
+      ],
+      "consumes": [],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-01-T1",
+          "title": "Entity schemas",
+          "details": "zod schemas and Prisma models for User, Team, Company, Contact, Lead, Campaign, Task, SlaPolicy, AuditLog, CostLedgerEntry; dedupe keys for Company (domain) and Contact (email, phone, LinkedIn URL)."
+        },
+        {
+          "id": "P1-01-T2",
+          "title": "Pipeline state machine",
+          "details": "Stages and side states from domain_frame; allowed transitions table; guards (entry criteria as pluggable checks, compliance check hook); single transition API; DB guard against direct stage writes."
+        },
+        {
+          "id": "P1-01-T3",
+          "title": "Event outbox",
+          "details": "Transactional outbox, worker dispatcher, idempotent consumers, dead letter handling, replay tool."
+        },
+        {
+          "id": "P1-01-T4",
+          "title": "Audit log",
+          "details": "Append-only log for every transition and sensitive read or write; actor, timestamp, before/after, reason."
+        },
+        {
+          "id": "P1-01-T5",
+          "title": "Task and SLA engine",
+          "details": "SLA per stage, timers in worker, sla.breached event, automatic task creation and assignment."
+        },
+        {
+          "id": "P1-01-T6",
+          "title": "Core API",
+          "details": "CRUD with permissions hooks for companies, contacts, leads; lead transition endpoint; list endpoints with filters and pagination."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a lead in stage researched with a failing compliance check, When a transition to queued is requested, Then it is rejected with a reason code and compliance.blocked is emitted.",
+        "Given any successful transition, When it commits, Then exactly one audit entry and one outbox event exist in the same transaction.",
+        "Given a stage SLA of N hours, When N hours pass without a transition, Then sla.breached is emitted once and a task is created for the owner role.",
+        "Given two contacts with the same verified email, When the second is imported, Then it is merged into the existing contact, not duplicated."
+      ]
+    },
+    {
+      "worktree_id": "wt-02-auth-rbac",
+      "branch": "feat/auth-rbac",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/04_ARCHITECTURE.md"],
+      "goal": "Authentication, sessions and role-based access control for all roles in domain_frame.roles.",
+      "owns_paths": ["apps/api/src/auth", "apps/web/src/auth", "packages/domain/src/permissions"],
+      "consumes": ["packages/contracts"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-02-T1",
+          "title": "Auth",
+          "details": "Login, logout, sessions, password reset, rate limiting, secure cookies."
+        },
+        {
+          "id": "P1-02-T2",
+          "title": "RBAC",
+          "details": "Permission matrix per role; API middleware; UI route guards; row-level rules (reps see own queue, team leads see their team)."
+        },
+        {
+          "id": "P1-02-T3",
+          "title": "Admin user management",
+          "details": "Invite users, assign roles and teams, deactivate users (keeps audit history)."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a rep, When requesting another rep's lead, Then the API returns 403 and the attempt is audit logged.",
+        "Given a deactivated user, When they try to log in, Then access is denied and existing sessions are revoked."
+      ]
+    },
+    {
+      "worktree_id": "wt-03-compliance",
+      "branch": "feat/compliance-engine",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/specs/M12_*"],
+      "goal": "Compliance by design: a rules engine the state machine and dialler must pass before acting.",
+      "owns_paths": [
+        "packages/compliance",
+        "apps/api/src/compliance",
+        "apps/web/src/app/(admin)/compliance"
+      ],
+      "consumes": ["packages/contracts", "packages/domain (hooks only)"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-03-T1",
+          "title": "Rules engine",
+          "details": "CountryRule model: allowed calling windows, recording notice requirement, registry check requirement, retention period. Rules are data, editable by compliance role, versioned."
+        },
+        {
+          "id": "P1-03-T2",
+          "title": "Suppression",
+          "details": "SuppressionEntry by phone, email, contact, company domain; checked on queue, dial, email send; objection to processing moves lead to suppressed."
+        },
+        {
+          "id": "P1-03-T3",
+          "title": "Legal basis records",
+          "details": "LegalBasisRecord per contact (basis, source of data, date, assessment reference); required before queueing."
+        },
+        {
+          "id": "P1-03-T4",
+          "title": "Retention jobs",
+          "details": "Scheduled deletion or anonymisation per rule; recordings and transcripts included; audit entries kept."
+        },
+        {
+          "id": "P1-03-T5",
+          "title": "Copy linter",
+          "details": "Implements company_rules.outbound_copy_rules as a CI check for templates and seeded copy."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a contact outside the allowed calling window for their country, When a rep tries to dial, Then the dial button is disabled and the reason is shown.",
+        "Given a suppressed phone number, When any lead with that number is queued, Then the transition is blocked.",
+        "Given a template containing the word 'agency' or a dash, When CI runs, Then copy-lint fails with the line reference."
+      ],
+      "notes": "Default rules are ASSUMPTIONS until the compliance spec is approved and reviewed by real counsel."
+    },
+    {
+      "worktree_id": "wt-04-integrations-framework",
+      "branch": "feat/integrations-framework",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/specs/M4_*", "docs/adr/*"],
+      "goal": "A uniform adapter framework plus the FullEnrich adapter and mocks for every external provider.",
+      "owns_paths": ["packages/integrations", "tools/mocks", "apps/api/src/webhooks"],
+      "consumes": ["packages/contracts"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-04-T1",
+          "title": "Adapter framework",
+          "details": "Interface pattern, timeouts, retries with backoff, idempotency keys, rate limit handling, credential storage via secrets, cost recording to CostLedgerEntry."
+        },
+        {
+          "id": "P1-04-T2",
+          "title": "Webhook receiver",
+          "details": "Signed or secret-verified endpoints, idempotent processing, correlation via custom parameters, dead letter queue."
+        },
+        {
+          "id": "P1-04-T3",
+          "title": "FullEnrich adapter",
+          "details": "Search API (synchronous) and Enrich API (asynchronous with webhook result). Verify every endpoint and payload against the current official FullEnrich docs before coding. Mock server reproduces success, partial, not found and error cases."
+        },
+        {
+          "id": "P1-04-T4",
+          "title": "Provider interfaces + mocks",
+          "details": "Interfaces and mock servers for telephony, transcription, llm, email, calendar; contract tests for each."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given an enrichment request, When the mock FullEnrich webhook posts the result twice, Then the contact is updated once and lead.enriched is emitted once.",
+        "Given the provider times out, When retries are exhausted, Then lead.enrichment_failed is emitted and a task is created.",
+        "Given any paid call, When it completes, Then a CostLedgerEntry with provider, unit and amount is written."
+      ]
+    },
+    {
+      "worktree_id": "wt-05-design-system-workspace",
+      "branch": "feat/design-system-workspace",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/specs/*design_system*", "docs/specs/M10_*"],
+      "goal": "Premium design system and the rep workspace shell: one screen, one next action.",
+      "owns_paths": ["packages/ui", "apps/web/src/app/(rep)", "apps/web/src/app/(shell)"],
+      "consumes": ["packages/contracts", "apps/api (via typed client)"],
+      "test_first": false,
+      "tasks": [
+        {
+          "id": "P1-05-T1",
+          "title": "Design tokens and components",
+          "details": "Colour, type, spacing tokens (light and dark), buttons, inputs, tables, cards, dialogs, toasts, empty states; premium, restrained visual language; WCAG 2.2 AA."
+        },
+        {
+          "id": "P1-05-T2",
+          "title": "App shell per role",
+          "details": "Navigation and layouts for rep, team lead, qualifier, closer, growth lead, admin."
+        },
+        {
+          "id": "P1-05-T3",
+          "title": "Rep queue and lead screen",
+          "details": "Prioritised queue, lead card with dossier panel placeholder, single primary action button, keyboard shortcuts, progress tracker for the day."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a rep opens the workspace, When the queue loads, Then exactly one primary action is visible for the top lead.",
+        "Given axe accessibility checks, When run on every rep screen, Then there are no serious or critical violations."
+      ]
+    },
+    {
+      "worktree_id": "wt-06-script-engine",
+      "branch": "feat/script-engine",
+      "phase": "P1",
+      "depends_on": ["P0"],
+      "spec_inputs": ["docs/specs/M6_*"],
+      "goal": "Interactive script engine: versioned branching trees, a runtime that shows the next line instantly when the rep clicks the prospect's answer, and full path logging.",
+      "owns_paths": [
+        "packages/script-engine",
+        "apps/web/src/components/script-player",
+        "apps/api/src/scripts"
+      ],
+      "consumes": ["packages/contracts", "packages/ui"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-06-T1",
+          "title": "Tree model and versioning",
+          "details": "ScriptTree, ScriptVersion (immutable once published), ScriptNode (line, intent, variables such as {first_name}, {signal_hook}), ScriptAnswer (label, next node, outcome tag). Validation: no orphans, no dead ends without an outcome."
+        },
+        {
+          "id": "P1-06-T2",
+          "title": "Runtime",
+          "details": "Resolve next node from answer client side with prefetch; variable filling from lead and dossier (only sourced fields); fallback lines when a variable is missing."
+        },
+        {
+          "id": "P1-06-T3",
+          "title": "Script player UI",
+          "details": "Current line large, answer buttons, back step, objection shortcut, booking node that opens the booking panel; works with keyboard only."
+        },
+        {
+          "id": "P1-06-T4",
+          "title": "Path logging",
+          "details": "CallPath with timestamps per node; script.node_answered events; supports experiment variant id."
+        },
+        {
+          "id": "P1-06-T5",
+          "title": "Seed script",
+          "details": "A synthetic placeholder tree for testing only, clearly marked as not for live use, written to the copy rules."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a published version, When an editor changes it, Then a new version is created and live calls keep the version they started with.",
+        "Given a rep clicks an answer, When the next node renders, Then it appears in under 100 ms on a standard laptop (no network round trip).",
+        "Given a node needs {signal_hook} and the dossier has no sourced signal, When rendered, Then the fallback line is shown."
+      ]
+    },
+    {
+      "worktree_id": "wt-07-telephony-adapter",
+      "branch": "feat/telephony-adapter",
+      "phase": "P1",
+      "depends_on": ["P0", "wt-04-integrations-framework"],
+      "spec_inputs": ["docs/specs/M7_*", "docs/adr/*telephony*"],
+      "goal": "Calling inside the CRM through a provider adapter (mock now, vendor after ADR): dial, call state, recording with notice, call logging synced to the lead.",
+      "owns_paths": [
+        "packages/integrations/src/telephony",
+        "apps/web/src/components/dialler",
+        "apps/api/src/calls"
+      ],
+      "consumes": [
+        "packages/contracts",
+        "packages/compliance",
+        "packages/integrations (framework)"
+      ],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P1-07-T1",
+          "title": "Call model and lifecycle",
+          "details": "Call, Recording, CallTag; states started, ringing, connected, ended; maps to pipeline transitions dialled, connected, conversation."
+        },
+        {
+          "id": "P1-07-T2",
+          "title": "Dialler component",
+          "details": "Click to call from lead screen, mute, hold, hang up, disposition picker; compliance pre-check before dial."
+        },
+        {
+          "id": "P1-07-T3",
+          "title": "Recording notice",
+          "details": "If CountryRule requires notice, the platform plays or prompts the notice and records that it happened; recording does not start before the notice step completes."
+        },
+        {
+          "id": "P1-07-T4",
+          "title": "Mock provider",
+          "details": "Simulates answer, no answer, voicemail, busy, failed, with webhooks."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a country rule requiring recording notice, When a call connects, Then no recording exists before the notice event is logged.",
+        "Given a call ends after 75 seconds with decision maker tagged, When the disposition is saved, Then the lead moves to conversation through the state machine."
+      ]
+    },
+    {
+      "worktree_id": "wt-08-offer-icp-signals",
+      "branch": "feat/offer-icp-signals",
+      "phase": "P2",
+      "depends_on": ["P1"],
+      "spec_inputs": ["docs/specs/M1_*", "docs/specs/M2_*", "docs/specs/M3_*"],
+      "goal": "Offer knowledge base, ICP segments and scoring, and the pain-point signal detection pipeline as specified.",
+      "owns_paths": [
+        "packages/domain/src/icp",
+        "packages/domain/src/signals",
+        "apps/worker/src/signals",
+        "apps/web/src/app/(growth)/icp"
+      ],
+      "consumes": ["packages/contracts", "packages/integrations"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P2-08-T1",
+          "title": "Offer knowledge base",
+          "details": "Services, proof items, approved claims, collateral references; only approved content can be used by scripts and emails."
+        },
+        {
+          "id": "P2-08-T2",
+          "title": "ICP engine",
+          "details": "Segments as data, scoring model per spec, explainable score breakdown, threshold per campaign."
+        },
+        {
+          "id": "P2-08-T3",
+          "title": "Signal detection",
+          "details": "Signal taxonomy, source connectors per spec, weights, freshness decay, precision tracking per signal."
+        }
+      ],
+      "acceptance_criteria": [
+        "Defined in M1, M2, M3 specs; every score shows its contributing factors with sources."
+      ]
+    },
+    {
+      "worktree_id": "wt-09-sourcing-enrichment",
+      "branch": "feat/sourcing-enrichment",
+      "phase": "P2",
+      "depends_on": ["P1", "wt-08-offer-icp-signals"],
+      "spec_inputs": ["docs/specs/M4_*"],
+      "goal": "Sourcing and enrichment pipeline: search, dedupe, enrich, verify, suppress, cost per usable lead.",
+      "owns_paths": ["apps/worker/src/sourcing", "apps/web/src/app/(growth)/sourcing"],
+      "consumes": ["packages/contracts", "packages/integrations", "packages/compliance"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P2-09-T1",
+          "title": "Sourcing runs",
+          "details": "Run definitions per ICP segment and source; volume caps; budget caps from cost ledger."
+        },
+        {
+          "id": "P2-09-T2",
+          "title": "Enrichment flow",
+          "details": "FullEnrich Search then Enrich via webhook; waterfall to other sources per spec; verification status stored."
+        },
+        {
+          "id": "P2-09-T3",
+          "title": "Quality and cost metrics",
+          "details": "Match rate, verified rate, duplicate rate, cost per usable lead per source."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M4 spec; a run never exceeds its budget cap."]
+    },
+    {
+      "worktree_id": "wt-10-dossier",
+      "branch": "feat/dossier",
+      "phase": "P2",
+      "depends_on": ["P1", "wt-08-offer-icp-signals"],
+      "spec_inputs": ["docs/specs/M5_*"],
+      "goal": "Automated, sourced lead research dossier for reps (15-second view) and qualifiers (full view).",
+      "owns_paths": ["apps/worker/src/dossier", "apps/web/src/components/dossier"],
+      "consumes": ["packages/contracts", "packages/integrations/llm"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P2-10-T1",
+          "title": "Research pipeline",
+          "details": "Gather sources, store DossierClaims with URL, retrieval date, confidence; LLM summarises only from stored claims."
+        },
+        {
+          "id": "P2-10-T2",
+          "title": "Unsourced claim validator",
+          "details": "Rejects any generated sentence that cannot be linked to a claim; dossier stays not_ready until it passes."
+        },
+        {
+          "id": "P2-10-T3",
+          "title": "Dossier views",
+          "details": "Rep summary card (hook, role, signals, risks) and qualifier full view."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given a generated dossier, When any sentence lacks a linked claim, Then the dossier is not marked ready."
+      ]
+    },
+    {
+      "worktree_id": "wt-11-calling-live",
+      "branch": "feat/calling-live",
+      "phase": "P2",
+      "depends_on": ["P1"],
+      "spec_inputs": [
+        "docs/specs/M6_*",
+        "docs/specs/M7_*",
+        "docs/adr/*telephony*",
+        "docs/adr/*transcription*"
+      ],
+      "goal": "Real telephony and transcription vendors behind the existing adapters, ICP script v1 loaded, conversation analytics tagging.",
+      "owns_paths": [
+        "packages/integrations/src/telephony/providers",
+        "packages/integrations/src/transcription",
+        "apps/worker/src/analytics"
+      ],
+      "consumes": ["packages/contracts", "packages/script-engine", "packages/compliance"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P2-11-T1",
+          "title": "Vendor adapters",
+          "details": "Implement the chosen vendors (after Peter approves at the human gate); contract tests against mocks and sandbox."
+        },
+        {
+          "id": "P2-11-T2",
+          "title": "Transcription and tagging",
+          "details": "Transcripts linked to calls and script nodes; tags per spec (objections, outcomes, talk ratio)."
+        },
+        {
+          "id": "P2-11-T3",
+          "title": "Script v1 import",
+          "details": "Import the approved script tree from the M6 spec; copy-lint must pass."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M6 and M7 specs."]
+    },
+    {
+      "worktree_id": "wt-12-rep-ops",
+      "branch": "feat/rep-ops",
+      "phase": "P2",
+      "depends_on": ["P1"],
+      "spec_inputs": ["docs/specs/M10_*"],
+      "goal": "Rep operations features: queue prioritisation, daily targets and trackers, QA scoring, coaching notes, onboarding paths.",
+      "owns_paths": [
+        "apps/web/src/app/(rep)/progress",
+        "apps/web/src/app/(lead)",
+        "apps/api/src/repops"
+      ],
+      "consumes": ["packages/contracts", "packages/ui"],
+      "test_first": false,
+      "tasks": [
+        {
+          "id": "P2-12-T1",
+          "title": "Queue prioritisation",
+          "details": "Order by score, signal freshness, calling window, cadence; explainable."
+        },
+        {
+          "id": "P2-12-T2",
+          "title": "Progress and activity trackers",
+          "details": "Per rep: dials, connects, conversations, meetings booked and held, quality score."
+        },
+        {
+          "id": "P2-12-T3",
+          "title": "QA and coaching",
+          "details": "Call review with recording, scorecard, coaching notes, linked to script nodes."
+        },
+        {
+          "id": "P2-12-T4",
+          "title": "Onboarding",
+          "details": "Guided first sessions, practice mode with mock calls."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M10 spec."]
+    },
+    {
+      "worktree_id": "wt-13-booking-handoff",
+      "branch": "feat/booking-handoff",
+      "phase": "P3",
+      "depends_on": ["P2"],
+      "spec_inputs": ["docs/specs/M9_*"],
+      "goal": "Meeting booking in the call, tailored confirmation and pre-meeting emails that sell the purpose of the qualifier meeting, reminders, no-show handling, qualifier brief.",
+      "owns_paths": [
+        "apps/api/src/meetings",
+        "apps/worker/src/meetings",
+        "apps/web/src/components/booking",
+        "apps/web/src/app/(qualifier)"
+      ],
+      "consumes": [
+        "packages/contracts",
+        "packages/integrations (email, calendar)",
+        "packages/compliance"
+      ],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P3-13-T1",
+          "title": "Booking panel",
+          "details": "Qualifier availability, time zones, one-click booking from the script booking node."
+        },
+        {
+          "id": "P3-13-T2",
+          "title": "Email sequences",
+          "details": "Confirmation, value email, reminders; language per market; copy rules enforced by copy-lint."
+        },
+        {
+          "id": "P3-13-T3",
+          "title": "Qualifier brief",
+          "details": "Auto-generated from dossier, call path, transcript highlights; sourced only."
+        },
+        {
+          "id": "P3-13-T4",
+          "title": "Held and no-show flow",
+          "details": "Qualifier marks held, no-show or rescheduled; transitions and SLA tasks."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M9 spec."]
+    },
+    {
+      "worktree_id": "wt-14-collateral",
+      "branch": "feat/collateral",
+      "phase": "P3",
+      "depends_on": ["P2"],
+      "spec_inputs": ["docs/specs/M9_*collateral*", "docs/specs/M1_*"],
+      "goal": "Tailored collateral system: premium templates and selection logic per ICP and signal.",
+      "owns_paths": ["apps/worker/src/collateral", "packages/ui/src/documents"],
+      "consumes": ["packages/contracts"],
+      "test_first": false,
+      "tasks": [
+        {
+          "id": "P3-14-T1",
+          "title": "Templates",
+          "details": "One-pager and short deck templates rendered to PDF; approved content only."
+        },
+        {
+          "id": "P3-14-T2",
+          "title": "Selection logic",
+          "details": "Rules per spec choose which document goes with which email."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M9 collateral spec."]
+    },
+    {
+      "worktree_id": "wt-15-experimentation",
+      "branch": "feat/experimentation",
+      "phase": "P3",
+      "depends_on": ["P2"],
+      "spec_inputs": ["docs/specs/M8_*"],
+      "goal": "Experiment framework for ICP, signal and script variants, node-level metrics, and a human-approved script change loop.",
+      "owns_paths": [
+        "packages/domain/src/experiments",
+        "apps/worker/src/experiments",
+        "apps/web/src/app/(growth)/experiments"
+      ],
+      "consumes": ["packages/contracts", "packages/script-engine"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P3-15-T1",
+          "title": "Assignment",
+          "details": "Randomised, sticky assignment per lead; variant recorded on calls."
+        },
+        {
+          "id": "P3-15-T2",
+          "title": "Metrics",
+          "details": "Per variant and node: continuation rate, conversation rate, booked and held rate; sample size and stopping rules per spec."
+        },
+        {
+          "id": "P3-15-T3",
+          "title": "Change proposals",
+          "details": "Insights from transcripts produce proposed script edits; growth lead approves before a new version is published."
+        }
+      ],
+      "acceptance_criteria": ["Defined in M8 spec; no script change goes live without approval."]
+    },
+    {
+      "worktree_id": "wt-16-dashboards",
+      "branch": "feat/dashboards",
+      "phase": "P3",
+      "depends_on": ["P2"],
+      "spec_inputs": ["docs/specs/M11_*"],
+      "goal": "Growth leadership dashboards: funnel, workforce efficiency, ICP and source ROI, budget, forecast.",
+      "owns_paths": ["apps/web/src/app/(growth)/dashboards", "apps/api/src/analytics"],
+      "consumes": ["packages/contracts"],
+      "test_first": true,
+      "tasks": [
+        {
+          "id": "P3-16-T1",
+          "title": "Metric layer",
+          "details": "Metric definitions in code, computed from events and cost ledger; every number traceable to source rows."
+        },
+        {
+          "id": "P3-16-T2",
+          "title": "Dashboards",
+          "details": "North star, funnel by stage, rep efficiency, cost per held meeting, ROI per ICP and source, budget burn, forecast."
+        }
+      ],
+      "acceptance_criteria": [
+        "Given any dashboard number, When the growth lead drills down, Then the underlying records are listed."
+      ]
+    },
+    {
+      "worktree_id": "wt-17-system-acceptance",
+      "branch": "feat/system-acceptance",
+      "phase": "P4",
+      "depends_on": ["P3"],
+      "spec_inputs": ["docs/specs/*", "docs/build/reports/*"],
+      "goal": "Whole-system acceptance and wave 1 readiness.",
+      "owns_paths": ["e2e", "docs/build/acceptance"],
+      "consumes": ["everything (read only)"],
+      "test_first": false,
+      "tasks": [
+        {
+          "id": "P4-17-T1",
+          "title": "End-to-end suites",
+          "details": "Journey ICP to won; a rep's full day; growth lead's weekly review."
+        },
+        {
+          "id": "P4-17-T2",
+          "title": "Non-functional checks",
+          "details": "Load, latency (script next node, queue load), security review, dependency audit."
+        },
+        {
+          "id": "P4-17-T3",
+          "title": "Compliance verification",
+          "details": "Calling windows, suppression, recording notice, retention, audit trail, copy-lint."
+        },
+        {
+          "id": "P4-17-T4",
+          "title": "Go-live checklist",
+          "details": "Data loaded with suppression applied, scripts approved, reps onboarded, qualifier calendars connected, monitoring on, rollback plan; defect list with fix tasks."
+        }
+      ],
+      "acceptance_criteria": [
+        "All P4 acceptance demo items pass and Peter signs off the go-live checklist."
+      ]
+    }
+  ],
+
+  "merge_order": {
+    "P1": [
+      "wt-01-core-domain",
+      "wt-02-auth-rbac",
+      "wt-03-compliance",
+      "wt-04-integrations-framework",
+      "wt-06-script-engine",
+      "wt-07-telephony-adapter",
+      "wt-05-design-system-workspace"
+    ],
+    "P2": [
+      "wt-08-offer-icp-signals",
+      "wt-09-sourcing-enrichment",
+      "wt-10-dossier",
+      "wt-11-calling-live",
+      "wt-12-rep-ops"
+    ],
+    "P3": [
+      "wt-13-booking-handoff",
+      "wt-14-collateral",
+      "wt-15-experimentation",
+      "wt-16-dashboards"
+    ],
+    "P4": ["wt-17-system-acceptance"],
+    "note": "wt-01 merges first in P1 because every other worktree consumes packages/contracts. Others start in parallel against the contracts seed from P0 and rebase after wt-01 merges."
+  },
+
+  "reporting": {
+    "build_tracker": "docs/build/BUILD_TRACKER.md: task id | worktree | status (not_started, in_progress, blocked, review, merged) | blocker | report link",
+    "worktree_report": "docs/build/reports/{worktree_id}_report.md: what was built, library and API versions, decisions, deviations from spec, known issues, handoffs",
+    "phase_report": "docs/build/reports/PHASE_{id}_report.md: acceptance demo steps, test results, open questions for Peter, readiness for next phase",
+    "questions": "docs/build/QUESTIONS.md: every human gate question with the recommended answer"
+  }
+}

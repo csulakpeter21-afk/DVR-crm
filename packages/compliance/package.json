@@ -1,0 +1,29 @@
+{
+  "name": "@devora/compliance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Compliance rules engine, suppression, calling windows, recording notice, retention and the outbound copy linter.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./copy-lint": "./src/copy-lint/index.ts"
+  },
+  "scripts": {
+    "copy-lint": "tsx src/copy-lint/cli.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@devora/contracts": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "4.23.15",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

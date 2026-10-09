@@ -1,0 +1,28 @@
+{
+  "name": "@devora/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Single source of truth: pipeline stages, roles, events, entity schemas and API DTOs. Owned by wt-01-core-domain.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pipeline": "./src/pipeline.ts",
+    "./roles": "./src/roles.ts",
+    "./events": "./src/events.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

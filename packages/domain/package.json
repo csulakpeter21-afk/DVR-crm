@@ -1,0 +1,27 @@
+{
+  "name": "@devora/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pipeline state machine, task and SLA engine, audit log, scoring interfaces.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pipeline": "./src/pipeline/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@devora/contracts": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
